@@ -9,8 +9,8 @@ pipeline {
     stage('Checkout') {
       steps {
         sh 'echo passed'
-        // Uncomment and configure the following line if you want to checkout code from a specific branch
-        // git branch: 'main', url: 'https://github.com/Nitingeek23/java-app.git'
+        // Uncomment and configure the following line to checkout code from your GitHub repository
+        git branch: 'main', url: 'https://github.com/Nitingeek23/java-app.git'
       }
     }
     stage('Build and Test') {
@@ -20,17 +20,6 @@ pipeline {
         sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && mvn clean package'
       }
     }
-    // Removed Static Code Analysis stage as it is not required
-    // stage('Static Code Analysis') {
-    //   environment {
-    //     SONAR_URL = "http://100.26.31.48:9000"
-    //   }
-    //   steps {
-    //     withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
-    //       sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && mvn sonar:sonar -Dsonar.login=$SONAR_AUTH_TOKEN -Dsonar.host.url=${SONAR_URL}'
-    //     }
-    //   }
-    // }
     stage('Build Docker Image') {
       environment {
         DOCKER_IMAGE = "sunitabachhav2007/ultimate-cicd:${BUILD_NUMBER}"
@@ -48,14 +37,14 @@ pipeline {
     }
     stage('Update Deployment File') {
         environment {
-            GIT_REPO_NAME = "Jenkins-Zero-To-Hero"
-            GIT_USER_NAME = "sunitabachhav2007"
+            GIT_REPO_NAME = "java-app"
+            GIT_USER_NAME = "Nitingeek23"
         }
         steps {
             withCredentials([string(credentialsId: 'github-PAT', variable: 'GITHUB_TOKEN')]) {
                 sh '''
-                    git config user.email "sunitabachhav2007@gmail.com"
-                    git config user.name "Sunita Sonawane"
+                    git config user.email "nitinrjpt123@gmail.com"
+                    git config user.name "Nitingeek23"
                     BUILD_NUMBER=${BUILD_NUMBER}
                     sed -i -e "s/ultimate-cicd.*/ultimate-cicd:${BUILD_NUMBER}/g"  java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
                     git add java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
