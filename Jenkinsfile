@@ -2,13 +2,23 @@ pipeline {
   agent {
     docker {
       image 'abhishekf5/maven-abhishek-docker-agent:v1'
-      args '--user root -v /var/run/docker.sock:/var/run/docker.sock'
+      args '--user root -v /var/run/docker.sock:/var/run/docker.sock' // Mount Docker socket
     }
   }
   stages {
     stage('Clean Workspace') {
       steps {
         deleteDir()  // Clean the workspace
+      }
+    }
+    stage('Verify Docker Integration') {
+      steps {
+        script {
+          // Check Docker socket
+          sh 'ls -l /var/run/docker.sock'
+          // Test Docker command
+          sh 'docker info'
+        }
       }
     }
     stage('Test Commit') {
@@ -37,7 +47,7 @@ pipeline {
         sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && mvn clean package'
       }
     }
-    stage('Builds Docker Image') {
+    stage('Build Docker Image') {
       environment {
         DOCKER_IMAGE = "sunitabachhav2007/ultimate-cicd:${BUILD_NUMBER}"
       }
