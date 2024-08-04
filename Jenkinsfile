@@ -9,30 +9,40 @@ pipeline {
     stage('Checkout') {
       steps {
         sh 'echo passed'
-        // Uncomment the line below if you need to checkout code from GitHub
+        // Uncomment and configure the following line if you want to checkout code from a specific branch
         // git branch: 'main', url: 'https://github.com/Nitingeek23/java-app.git'
       }
     }
     stage('Build and Test') {
       steps {
         sh 'ls -ltr'
-        // build the project and create a JAR file
+        // Build the project and create a JAR file
         sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && mvn clean package'
       }
     }
-    stage('Build and Push Docker Image') {
+    // Removed Static Code Analysis stage as it is not required
+    // stage('Static Code Analysis') {
+    //   environment {
+    //     SONAR_URL = "http://100.26.31.48:9000"
+    //   }
+    //   steps {
+    //     withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
+    //       sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && mvn sonar:sonar -Dsonar.login=$SONAR_AUTH_TOKEN -Dsonar.host.url=${SONAR_URL}'
+    //     }
+    //   }
+    // }
+    stage('Build Docker Image') {
       environment {
         DOCKER_IMAGE = "sunitabachhav2007/ultimate-cicd:${BUILD_NUMBER}"
-        // DOCKERFILE_LOCATION = "java-maven-sonar-argocd-helm-k8s/spring-boot-app/Dockerfile"
-        REGISTRY_CREDENTIALS = credentials('docker-cred')
       }
       steps {
         script {
             sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && docker build -t ${DOCKER_IMAGE} .'
-            def dockerImage = docker.image("${DOCKER_IMAGE}")
-            docker.withRegistry('https://index.docker.io/v1/', "docker-cred") {
-                dockerImage.push()
-            }
+            // Docker login and push are removed
+            // def dockerImage = docker.image("${DOCKER_IMAGE}")
+            // docker.withRegistry('https://index.docker.io/v1/', "docker-cred") {
+            //     dockerImage.push()
+            // }
         }
       }
     }
