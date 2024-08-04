@@ -9,7 +9,7 @@ pipeline {
     stage('Checkout') {
       steps {
         sh 'echo passed'
-        // Uncomment and configure the following line to checkout code from your GitHub repository
+        // Checkout code from your GitHub repository
         git branch: 'main', url: 'https://github.com/Nitingeek23/java-app.git'
       }
     }
@@ -27,11 +27,6 @@ pipeline {
       steps {
         script {
             sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && docker build -t ${DOCKER_IMAGE} .'
-            // Docker login and push are removed
-            // def dockerImage = docker.image("${DOCKER_IMAGE}")
-            // docker.withRegistry('https://index.docker.io/v1/', "docker-cred") {
-            //     dockerImage.push()
-            // }
         }
       }
     }
@@ -53,6 +48,28 @@ pipeline {
                 '''
             }
         }
+    }
+    stage('Deploy New Container') {
+      environment {
+        DOCKER_IMAGE = "sunitabachhav2007/ultimate-cicd:${BUILD_NUMBER}"
+      }
+      steps {
+        script {
+            // Stop and remove any existing container
+            sh '''
+              existing_container=$(docker ps -q --filter "ancestor=${DOCKER_IMAGE}")
+              if [ -n "$existing_container" ]; then
+                docker stop "$existing_container"
+                docker rm "$existing_container"
+              fi
+            '''
+
+            // Run the new container
+            sh '''
+              docker run -d -p 8010:8080 ${DOCKER_IMAGE}
+            '''
+        }
+      }
     }
   }
 }
