@@ -2,8 +2,13 @@ pipeline {
   agent {
     docker {
       image 'abhishekf5/maven-abhishek-docker-agent:v1'
-      args '--user root -v /var/run/docker.sock:/var/run/docker.sock' // Mount Docker socket
+      args '--user root -v /var/run/docker.sock:/var/run/docker.sock'
     }
+  }
+  environment {
+    GIT_REPO_NAME = "java-app"
+    GIT_USER_NAME = "Nitingeek23"
+    DOCKER_IMAGE = "sunitabachhav2007/ultimate-cicd:${BUILD_NUMBER}"
   }
   stages {
     stage('Clean Workspace') {
@@ -14,10 +19,14 @@ pipeline {
     stage('Verify Docker Integration') {
       steps {
         script {
-          // Check Docker socket
-          sh 'ls -l /var/run/docker.sock'
-          // Test Docker command
-          sh 'docker info'
+          try {
+            // Check Docker socket
+            sh 'ls -l /var/run/docker.sock'
+            // Test Docker command
+            sh 'docker info'
+          } catch (Exception e) {
+            error "Docker integration verification failed: ${e.message}"
+          }
         }
       }
     }
@@ -37,7 +46,6 @@ pipeline {
     }
     stage('Checkout') {
       steps {
-        sh 'echo passed'
         git branch: 'main', url: 'https://github.com/Nitingeek23/java-app.git'
       }
     }
@@ -48,9 +56,6 @@ pipeline {
       }
     }
     stage('Build Docker Image') {
-      environment {
-        DOCKER_IMAGE = "sunitabachhav2007/ultimate-cicd:${BUILD_NUMBER}"
-      }
       steps {
         script {
           sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && docker build -t ${DOCKER_IMAGE} .'
@@ -58,17 +63,12 @@ pipeline {
       }
     }
     stage('Update Deployment File') {
-      environment {
-        GIT_REPO_NAME = "java-app"
-        GIT_USER_NAME = "Nitingeek23"
-      }
       steps {
         withCredentials([string(credentialsId: 'github-PAT', variable: 'GITHUB_TOKEN')]) {
           sh '''
             git config user.email "nitinrjpt123@gmail.com"
             git config user.name "Nitingeek23"
-            BUILD_NUMBER=${BUILD_NUMBER}
-            sed -i -e "s/ultimate-cicd.*/ultimate-cicd:${BUILD_NUMBER}/g"  java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
+            sed -i -e "s/ultimate-cicd.*/ultimate-cicd:${BUILD_NUMBER}/g" java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
             git add java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
             git commit -m "Update deployment image to version ${BUILD_NUMBER}"
             git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
@@ -77,9 +77,6 @@ pipeline {
       }
     }
     stage('Deploy New Container') {
-      environment {
-        DOCKER_IMAGE = "sunitabachhav2007/ultimate-cicd:${BUILD_NUMBER}"
-      }
       steps {
         script {
           sh '''
@@ -88,8 +85,6 @@ pipeline {
               docker stop "$existing_container"
               docker rm "$existing_container"
             fi
-          '''
-          sh '''
             docker run -d -p 8010:8080 ${DOCKER_IMAGE}
           '''
         }
